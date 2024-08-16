@@ -42,6 +42,8 @@ namespace FI.WebAtividadeEntrevista
                       "~/Content/bootstrap.css",
                       "~/Content/site.css"));
 
+            bundles.Add(new ScriptBundle("~/bundles/jquerymask").Include("~/Scripts/jquery.mask.js"));
+
             bundles.Add(new StyleBundle("~/Content/jtable").Include(
                       "~/Scripts/jtable/themes/metro/darkgray/jtable.css"));
         }

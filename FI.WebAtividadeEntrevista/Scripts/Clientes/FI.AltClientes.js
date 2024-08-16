@@ -1,8 +1,12 @@
 ﻿
 $(document).ready(function () {
+
+    $('#CPF').mask('000.000.000-00', { reverse: true });
+
     if (obj) {
         $('#formCadastro #Nome').val(obj.Nome);
         $('#formCadastro #CEP').val(obj.CEP);
+        $('#formCadastro #CPF').val(obj.CPF);
         $('#formCadastro #Email').val(obj.Email);
         $('#formCadastro #Sobrenome').val(obj.Sobrenome);
         $('#formCadastro #Nacionalidade').val(obj.Nacionalidade);
@@ -12,15 +16,25 @@ $(document).ready(function () {
         $('#formCadastro #Telefone').val(obj.Telefone);
     }
 
+
+
     $('#formCadastro').submit(function (e) {
         e.preventDefault();
-        
+
+        var isCpfValido = ValidarCPF($(this).find("#CPF").val());
+
+        if (!isCpfValido) {
+            ModalDialog("Oops...!", "O Cpf informado é inválido");
+            return;
+        }
+
         $.ajax({
             url: urlPost,
             method: "POST",
             data: {
                 "NOME": $(this).find("#Nome").val(),
                 "CEP": $(this).find("#CEP").val(),
+                "CPF": $(this).find("#CPF").val(),
                 "Email": $(this).find("#Email").val(),
                 "Sobrenome": $(this).find("#Sobrenome").val(),
                 "Nacionalidade": $(this).find("#Nacionalidade").val(),
@@ -69,4 +83,48 @@ function ModalDialog(titulo, texto) {
 
     $('body').append(texto);
     $('#' + random).modal('show');
+}
+
+function ValidarCPF(Objcpf) {
+
+    var cpf = $.trim(Objcpf);
+
+    cpf = cpf.replace('.', '');
+    cpf = cpf.replace('.', '');
+    cpf = cpf.replace('-', '');
+    exp = /\.|\-/g;
+    cpf = cpf.toString().replace(exp, "");
+
+    while (cpf.length < 11) cpf = "0" + cpf;
+    var expReg = /^0+$|^1+$|^2+$|^3+$|^4+$|^5+$|^6+$|^7+$|^8+$|^9+$/;
+    var a = [];
+    var b = new Number;
+    var c = 11;
+    for (i = 0; i < 11; i++) {
+        a[i] = cpf.charAt(i);
+        if (i < 9) b += (a[i] * --c);
+    }
+    if ((x = b % 11) < 2) {
+        a[9] = 0;
+    }
+    else {
+        a[9] = 11 - x;
+    }
+    b = 0;
+    c = 11;
+    for (y = 0; y < 10; y++)
+        b += (a[y] * c--);
+    if ((x = b % 11) < 2) {
+        a[10] = 0;
+    }
+    else {
+        a[10] = 11 - x;
+    }
+
+    var retorno = true;
+
+    if ((cpf.charAt(9) != '' + a[9]) || (cpf.charAt(10) != '' + a[10]) || cpf.match(expReg))
+        retorno = false;
+
+    return retorno;
 }
