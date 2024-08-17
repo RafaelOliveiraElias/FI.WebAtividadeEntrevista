@@ -6,6 +6,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using FI.AtividadeEntrevista.DML;
+using System.Web.UI.WebControls;
 
 namespace WebAtividadeEntrevista.Controllers
 {
@@ -26,6 +27,7 @@ namespace WebAtividadeEntrevista.Controllers
         public JsonResult Incluir(ClienteModel model)
         {
             BoCliente bo = new BoCliente();
+            BoBeneficiario bob = new BoBeneficiario();
             try
             {
 
@@ -59,6 +61,16 @@ namespace WebAtividadeEntrevista.Controllers
                     CPF = model.CPF
                 });
 
+                foreach (var item in model.BeneficiariosCliente)
+                {
+                    bob.Incluir(new Beneficiario()
+                    {
+                        Nome = item.Nome,
+                        CPF = item.CPF,
+                        IDCLIENTE = model.Id
+                    });
+                }
+
 
                 return Json("Cadastro efetuado com sucesso");
             }
@@ -73,7 +85,8 @@ namespace WebAtividadeEntrevista.Controllers
         public JsonResult Alterar(ClienteModel model)
         {
             BoCliente bo = new BoCliente();
-       
+            BoBeneficiario bob = new BoBeneficiario();
+
             if (!this.ModelState.IsValid)
             {
                 List<string> erros = (from item in ModelState.Values
@@ -84,7 +97,7 @@ namespace WebAtividadeEntrevista.Controllers
                 return Json(string.Join(Environment.NewLine, erros));
             }
 
-            if (bo.VerificarExistencia(model.CPF))
+            if (bo.VerificarExistencia(model.CPF, model.Id))
             {
                 Response.StatusCode = 400;
                 return Json("Erro: Já existe um usuário com esse CPF.");
@@ -104,17 +117,71 @@ namespace WebAtividadeEntrevista.Controllers
                 Telefone = model.Telefone,
                 CPF = model.CPF
             });
-                               
+
+            List<Beneficiario> listaBeneficiarios = bob.Listar(model.Id);
+            List<BeneficiarioModel> listaModal = new List<BeneficiarioModel>();
+
+            if (listaBeneficiarios != null)
+            {
+                foreach (var item in listaBeneficiarios)
+                {
+                    listaModal.Add(new BeneficiarioModel(item.Id, item.CPF, item.Nome, item.IDCLIENTE));
+                }
+            }
+
+            var beneficiariosRemovidos = listaModal.Where(b =>
+                !model.BeneficiariosCliente.Any(mb => mb.Id == b.Id)).ToList();
+
+            foreach (var beneficiarioRemovido in beneficiariosRemovidos)
+            {
+                bob.Excluir(beneficiarioRemovido.Id);
+            }
+
+            foreach (var item in model.BeneficiariosCliente)
+            {
+                if (item.Id == 0)
+                {
+                    bob.Incluir(new Beneficiario()
+                    {
+                        Nome = item.Nome,
+                        CPF = item.CPF,
+                        IDCLIENTE = model.Id
+                    });
+                }
+                else
+                {
+                    bob.Alterar(new Beneficiario()
+                    {
+                        Id = item.Id,
+                        Nome = item.Nome,
+                        CPF = item.CPF,
+                        IDCLIENTE = model.Id
+                    });
+                }
+            }
+
             return Json("Cadastro alterado com sucesso");
         }
+
 
         [HttpGet]
         public ActionResult Alterar(long id)
         {
             BoCliente bo = new BoCliente();
+            BoBeneficiario bob = new BoBeneficiario();
+
             Cliente cliente = bo.Consultar(id);
             Models.ClienteModel model = null;
+            List<Beneficiario> listaBeneficiarios = bob.Listar(cliente.Id);
+            List<BeneficiarioModel> listaModal = new List<BeneficiarioModel>();
 
+            if (listaBeneficiarios != null)
+            {
+                foreach (var item in listaBeneficiarios)
+                {
+                    listaModal.Add(new BeneficiarioModel(item.Id, Convert.ToUInt64(item.CPF).ToString(@"000\.000\.000\-00"), item.Nome, item.IDCLIENTE));
+                }
+            }
             if (cliente != null)
             {
                 model = new ClienteModel()
@@ -129,7 +196,8 @@ namespace WebAtividadeEntrevista.Controllers
                     Nome = cliente.Nome,
                     Sobrenome = cliente.Sobrenome,
                     Telefone = cliente.Telefone,
-                    CPF = Convert.ToUInt64(cliente.CPF).ToString(@"000\.000\.000\-00")
+                    CPF = Convert.ToUInt64(cliente.CPF).ToString(@"000\.000\.000\-00"),
+                    BeneficiariosCliente = listaModal
                 };
 
             
